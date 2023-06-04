@@ -267,13 +267,13 @@ neighborIndices i =
   ]
 
 
-winningIndices :: Size -> [[Index]]
-winningIndices (Size s) = rows ++ columns ++ diagonals
+winningIndices :: Int -> [[Index]]
+winningIndices size = rows ++ columns ++ diagonals
   where
-    rows = [[Index {column = c, row = r} | c <- [0 .. s-1]] | r <- [0 .. s-1]]
-    columns = [[Index {column = c, row = r} | r <- [0 .. s-1]] | c <- [0 .. s-1]]
-    diagonals = [[Index {column = i, row = i} | i <- [0 .. s-1]], [Index {column = i, row = s - i - 1} | i <- [0 .. s-1]]]
+    rows = [[Index {column = c, row = r} | c <- [0 .. size-1]] | r <- [0 .. size-1]]
+    columns = [[Index {column = c, row = r} | r <- [0 .. size-1]] | c <- [0 .. size-1]]
+    diagonals = [[Index {column = i, row = i} | i <- [0 .. size-1]], [Index {column = i, row = size - i - 1} | i <- [0 .. size-1]]]
 
+gridSize :: Size -> Int
+gridSize (Size n) = n
 
-gridSize :: Grid.Size -> Int
-gridSize (Grid.Size n) = n
