@@ -35,7 +35,6 @@ executable TicTacToe
     DerivingVia
     ImportQualifiedPost
     LexicalNegation
-    NoFieldSelectors
     NoStarIsType
     OverloadedRecordDot
 
