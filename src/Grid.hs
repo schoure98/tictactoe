@@ -81,8 +81,8 @@ up i = i {row = i.row - 1}
 down :: Index -> Index
 down i = i {row = i.row + 1}
 
-wraparound :: Size -> Index -> Index
-wraparound (Size s) i = Index {column = i.column `mod` s, row = i.row `mod` s}
+wraparound :: Int -> Index -> Index
+wraparound s i = Index {column = i.column `mod` s, row = i.row `mod` s}
 
 allIndices :: Size -> [Index]
 allIndices (Size s) =

@@ -11,6 +11,9 @@ import Data.List (intersperse)
 import qualified Data.Vector as V
 import Data.Void
 import qualified Graphics.Vty as Vty
+import Brick.AttrMap (attrMap)
+import Graphics.Vty.Attributes (defAttr)
+
 import Graphics.Vty.Attributes.Color
 import Graphics.Vty.Input.Events (Button(..), Event(..), Key(..), Modifier(..))
 import Options.Applicative
@@ -46,11 +49,9 @@ cellWidget selected _ cell =
     else
       padAll 1 baseWidget
 
-boardWidget :: AppState -> Widget Void
-boardWidget state =
+boardWidget :: Board -> Index -> Widget Void
+boardWidget board focusIdx =
   let
-    board = appBoard state
-    focusIdx = focus state
     renderCell :: Index -> Cell -> Widget Void
     renderCell idx cell =
       let
@@ -61,11 +62,46 @@ boardWidget state =
   in
     renderTable $ table tableRows
 
+handleEvent ::
+  Board ->
+  Player ->
+  BrickEvent Void Void ->
+  EventM Void AppState ()
+handleEvent board player event =
+  case event of
+    VtyEvent (EvKey key []) ->
+      case key of
+        KLeft  -> modify $ \st -> st { focus = wraparound (gameBoardSize board) (up (st.focus)) }
+        KRight -> modify $ \st -> st { focus = wraparound (gameBoardSize board) (down (st.focus)) }
+        KUp    -> modify $ \st -> st { focus = wraparound (gameBoardSize board) (left (st.focus)) }
+        KDown  -> modify $ \st -> st { focus = wraparound (gameBoardSize board) (right (st.focus)) }
+        KEsc   -> halt
+        _      -> pure ()
+    _ -> pure ()
 
+gameAttrMap :: AttrMap
+gameAttrMap =
+  attrMap
+    (brightWhite `on` black)
+    [ (attrName "1", fg brightBlue)
+    , (attrName "2", fg green)
+    , (attrName "3", fg brightRed)
+    , (attrName "4", fg blue)
+    , (attrName "5", fg red)
+    , (attrName "6", fg cyan)
+    , (attrName "7", fg brightBlack)
+    , (attrName "8", fg white)
+    ]
 
-
-
-
+app :: Board -> Cell -> Player -> App AppState Void Void
+app board cell player = 
+  App 
+    { appDraw = \st -> [boardWidget (appBoard st) (focus st)]
+    , appChooseCursor = \_ _ -> Nothing
+    , appHandleEvent = handleEvent board player
+    , appStartEvent = pure ()
+    , appAttrMap = \_ -> gameAttrMap
+}
 
 initialAppState :: Options -> AppState
 initialAppState opts =
@@ -100,6 +136,4 @@ main :: IO ()
 main = do
   opts <- options
   let startGame = initialAppState opts
-  let widget = center $ boardWidget startGame
-  simpleMain widget
-  
+  void $ defaultMain (app (appBoard startGame) Empty (currentPlayer startGame)) startGame
