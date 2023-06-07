@@ -31,28 +31,48 @@ data GameStatus where
   GameWon :: GameStatus
   GameDraw :: GameStatus
   GameOver :: GameStatus
+  deriving (Show)
 
-cellWidget :: Cell -> Widget Void
-cellWidget Empty = padAll 1 $ Brick.str " "
-cellWidget XCell = padAll 1 $ Brick.str "X"
-cellWidget OCell = padAll 1 $ Brick.str "O"
+-- cellWidget :: Cell -> Widget Void
+-- cellWidget Empty = padAll 1 $ Brick.str " "
+-- cellWidget XCell = padAll 1 $ Brick.str "X"
+-- cellWidget OCell = padAll 1 $ Brick.str "O"
 
-boardWidget :: Board -> Widget Void
-boardWidget board = renderTable $ table rows
-  where
-    rows = V.toList $ V.map (V.toList . V.map cellWidget) board
+cellWidget :: Bool -> Index -> Cell -> Widget Void
+cellWidget selected _ cell =
+  let 
+    cellText = renderCell cell
+    baseWidget = 
+      withAttr (attrName cellText) $
+        Brick.str cellText
+  in
+    if selected then
+      border baseWidget
+    else
+      padAll 1 baseWidget
 
-handleEvent :: AppState -> BrickEvent Void Void -> EventM Void AppState
-handleEvent st event =
-  case event of
-    VtyEvent (EvKey key []) ->
-      case key of
-        KEsc -> halt st
-        _ -> continue st
-    _ -> continue st
 
-initialState :: Options -> AppState
-initialState opts =
+
+-- boardWidget :: Board -> Widget Void
+-- boardWidget board = renderTable $ table rows
+--   where
+--     rows = V.toList $ V.map (V.toList . V.map cellWidget) board
+
+boardWidget :: AppState -> Widget Void
+boardWidget state = 
+  let 
+    board = appBoard state
+    focusIdx = focus state
+    renderRow y row = hBox $ V.toList $ V.imap (renderCell y) row
+    renderCell y x cell = 
+      let 
+        selected = Index y x == focusIdx
+      in
+        border $ cellWidget selected (Index y x) cell
+  in vBox $ V.toList $ V.imap renderRow board
+
+initialAppState :: Options -> AppState
+initialAppState opts =
   AppState
     { appBoard = createEmptyBoard (opts.boardSize)
     , currentPlayer = opts.firstPlayer
@@ -83,14 +103,7 @@ options =
 main :: IO ()
 main = do
   opts <- options
-  let size = gridSize (opts.boardSize)
-  let emptyBoard = createEmptyBoard (Size size)
-  let widget = center $ boardWidget emptyBoard
+  let startGame = initialAppState opts
+  let widget = center $ boardWidget board
   simpleMain widget
-
-main :: IO ()
-main = do
-  opts <- options
-  let state = initialState opts
-  endState <- defaultMain (app opts) state
-  return ()
+  

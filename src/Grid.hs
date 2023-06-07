@@ -106,13 +106,13 @@ shape = Grid.map fst . indexed
 mapWithIndex :: forall a b. (Index -> a -> b) -> Grid a -> Grid b
 mapWithIndex f = Grid.map (uncurry f) . indexed
 
-replace :: forall a. Index -> a -> Grid a -> Grid a
-replace i x =
-  mapWithIndex
-    (\j y ->
-       if i == j
-         then x
-         else y)
+-- replace :: forall a. Index -> a -> Grid a -> Grid a
+-- replace i x =
+--   mapWithIndex
+--     (\j y ->
+--        if i == j
+--          then x
+--          else y)
 
 winningIndices :: Int -> [[Index]]
 winningIndices size = rows ++ columns ++ diagonals

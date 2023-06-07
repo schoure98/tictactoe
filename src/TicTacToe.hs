@@ -16,6 +16,7 @@ data Cell where
   Empty :: Cell
   XCell :: Cell
   OCell :: Cell
+  deriving (Show, Eq, Ord)
 
 type Board = Grid Cell
 
