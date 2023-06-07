@@ -64,9 +64,10 @@ data Index where
     :: { column :: Int
        , row :: Int}
     -> Index
+    deriving (Eq, Show, Read)
 
-instance Show Index where
-  show i = "<" ++ show i.column ++ ", " ++ show i.row ++ ">"
+-- instance Show Index where
+--   show i = "<" ++ show i.column ++ ", " ++ show i.row ++ ">"
 
 left :: Index -> Index
 left i = i {column = i.column - 1}

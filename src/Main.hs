@@ -32,12 +32,7 @@ data GameStatus where
   GameDraw :: GameStatus
   GameOver :: GameStatus
   deriving (Show)
-
--- cellWidget :: Cell -> Widget Void
--- cellWidget Empty = padAll 1 $ Brick.str " "
--- cellWidget XCell = padAll 1 $ Brick.str "X"
--- cellWidget OCell = padAll 1 $ Brick.str "O"
-
+      
 cellWidget :: Bool -> Index -> Cell -> Widget Void
 cellWidget selected _ cell =
   let 
@@ -51,25 +46,26 @@ cellWidget selected _ cell =
     else
       padAll 1 baseWidget
 
-
-
--- boardWidget :: Board -> Widget Void
--- boardWidget board = renderTable $ table rows
---   where
---     rows = V.toList $ V.map (V.toList . V.map cellWidget) board
-
 boardWidget :: AppState -> Widget Void
-boardWidget state = 
-  let 
+boardWidget state =
+  let
     board = appBoard state
     focusIdx = focus state
-    renderRow y row = hBox $ V.toList $ V.imap (renderCell y) row
-    renderCell y x cell = 
-      let 
-        selected = Index y x == focusIdx
+    renderCell :: Index -> Cell -> Widget Void
+    renderCell idx cell =
+      let
+        selected = idx == focusIdx
       in
-        border $ cellWidget selected (Index y x) cell
-  in vBox $ V.toList $ V.imap renderRow board
+        cellWidget selected idx cell
+    tableRows = V.toList $ V.imap (\y row -> V.toList $ V.imap (\x cell -> renderCell (Index y x) cell) row) board
+  in
+    renderTable $ table tableRows
+
+
+
+
+
+
 
 initialAppState :: Options -> AppState
 initialAppState opts =
@@ -104,6 +100,6 @@ main :: IO ()
 main = do
   opts <- options
   let startGame = initialAppState opts
-  let widget = center $ boardWidget board
+  let widget = center $ boardWidget startGame
   simpleMain widget
   
