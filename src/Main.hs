@@ -15,7 +15,6 @@ import qualified Data.Vector as V
 import Data.Void
 import qualified Graphics.Vty as Vty
 import Graphics.Vty.Attributes (defAttr)
-
 import Graphics.Vty.Attributes.Color
 import Graphics.Vty.Input.Events (Button(..), Event(..), Key(..), Modifier(..))
 import Options.Applicative
@@ -49,88 +48,70 @@ cellWidget selected _ cell =
 
 boardWidget :: Board -> Index -> Widget Void
 boardWidget board focusIdx =
-  let renderCell :: Index -> Cell -> Widget Void
-      renderCell idx cell =
+  let printCellValue :: Index -> Cell -> Widget Void
+      printCellValue idx cell =
         let selected = idx == focusIdx
          in cellWidget selected idx cell
       tableRows =
         V.toList
           $ V.imap
               (\y row ->
-                 V.toList $ V.imap (\x cell -> renderCell (Index y x) cell) row)
+                 V.toList $ V.imap (\x cell -> printCellValue (Index x y) cell) row)
               board
    in renderTable $ table tableRows
 
-togglePlayer :: Player -> Player
-togglePlayer X = O
-togglePlayer O = X
+selectCell :: Cell -> Player -> AppState -> Maybe AppState
+selectCell cell player st
+  | cell == Empty = Just (updateBoard (st.focus) st)
+  | otherwise = Nothing
+  where
+    updateBoard idx st' = st' { appBoard = replace idx (playerToCell player) (st'.appBoard), currentPlayer = switchPlayer player }
 
-selectCell :: Index -> Board -> Player -> AppState -> AppState
-selectCell idx board player st =
-  if idx `Set.member` markedCells st
-    then st
-    else case index board idx of
-           Just cell ->
-             case cell of
-               Empty ->
-                 let updatedBoard = replace idx (playerToCell player) board
-                     updatedMarkedCells = Set.insert idx (markedCells st)
-                  in st
-                       { appBoard = updatedBoard
-                       , currentPlayer = togglePlayer player
-                       , markedCells = updatedMarkedCells
-                       }
-               _ -> st
-           Nothing -> st
- 
+
+
+selectCellM :: EventM Void AppState ()
+selectCellM = do
+  st <- get
+  let selectedCell = index (st.appBoard) (st.focus)
+  case selectedCell of
+    Just cell -> case selectCell cell (st.currentPlayer) st of
+      Just updatedState -> put updatedState
+      Nothing -> pure ()
+    Nothing -> pure ()
 
 handleEvent ::
-  Board ->
-  Player ->
   BrickEvent Void Void ->
   EventM Void AppState ()
-handleEvent board player event =
+handleEvent event =
   case event of
-    VtyEvent (EvKey key []) ->
+    VtyEvent (EvKey key []) -> do
+      st <- get
       case key of
-        KLeft  -> modify $ \st -> st { focus = wraparound (gameBoardSize board) (up (st.focus)) }
-        KRight -> modify $ \st -> st { focus = wraparound (gameBoardSize board) (down (st.focus)) }
-        KUp    -> modify $ \st -> st { focus = wraparound (gameBoardSize board) (left (st.focus)) }
-        KDown  -> modify $ \st -> st { focus = wraparound (gameBoardSize board) (right (st.focus)) }
-        KEnter -> do
-          st <- get 
-          case gameStatus st of
-            GameInProgress ->
-              let selectedCell = focus st
-                  updatedState = selectCell selectedCell (appBoard st) player st
-                  updatedPlayer = togglePlayer (currentPlayer updatedState)
-              in modify (\st' -> updatedState { currentPlayer = updatedPlayer })
-            _ -> pure () 
+        KLeft  -> modify $ \st' -> st' { focus = (wraparound (gameBoardSize (st.appBoard)) (left (st.focus))) }
+        KRight -> modify $ \st' -> st' { focus = (wraparound (gameBoardSize (st.appBoard)) (right (st.focus))) }
+        KUp    -> modify $ \st' -> st' { focus = (wraparound (gameBoardSize (st.appBoard)) (up (st.focus))) }
+        KDown  -> modify $ \st' -> st' { focus = (wraparound (gameBoardSize (st.appBoard)) (down (st.focus))) }
+        KEnter -> selectCellM 
         KEsc   -> halt
         _      -> pure ()
     _ -> pure ()
-
 
 gameAttrMap :: AttrMap
 gameAttrMap =
   attrMap
     (brightWhite `on` black)
-    [ (attrName "1", fg brightBlue)
-    , (attrName "2", fg green)
-    , (attrName "3", fg brightRed)
-    , (attrName "4", fg blue)
-    , (attrName "5", fg red)
-    , (attrName "6", fg cyan)
-    , (attrName "7", fg brightBlack)
-    , (attrName "8", fg white)
+    [ (attrName (renderCell XCell), fg brightBlue)
+    , (attrName (renderCell OCell), fg green)
     ]
+
+
 
 app :: Board -> Cell -> Player -> App AppState Void Void
 app board cell player =
   App
-    { appDraw = \st -> [boardWidget (appBoard st) (focus st)]
+    { appDraw = \st -> [boardWidget (st.appBoard) (st.focus)]
     , appChooseCursor = \_ _ -> Nothing
-    , appHandleEvent = handleEvent board player
+    , appHandleEvent = handleEvent
     , appStartEvent = pure ()
     , appAttrMap = \_ -> gameAttrMap
     }
@@ -144,6 +125,7 @@ initialAppState opts =
     , focus = Index 0 0
     , markedCells = Set.empty
     }
+
 
 data Options where
   Options
@@ -165,11 +147,21 @@ options =
         (helper <*> optionsParser)
         (fullDesc <> progDesc "Play a game of Tic Tac Toe!")
 
+
 main :: IO ()
 main = do
   opts <- options
   let startGame = initialAppState opts
-  void
-    $ defaultMain
-        (app (appBoard startGame) Empty (currentPlayer startGame))
-        startGame
+  let (AppState startBoard startPlayer _ _ _) = startGame
+  finalState <- defaultMain (app startBoard Empty startPlayer) startGame
+
+  let (AppState endBoard endPlayer _ _ _) = finalState
+
+  if gameWon endBoard endPlayer
+    then putStrLn $ renderCell (playerToCell endPlayer) ++ " wins!"
+    else if gameLost endBoard endPlayer
+           then putStrLn $ renderCell (playerToCell (switchPlayer endPlayer)) ++ " wins!"
+           else if gameDraw endBoard
+                  then putStrLn "It's a tie game!"
+                  else pure ()
+  printBoard endBoard

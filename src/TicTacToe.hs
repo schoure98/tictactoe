@@ -1,8 +1,9 @@
 module TicTacToe where
 
+import Data.Maybe(fromMaybe)
 import Control.Monad.State
 import Data.Foldable (for_)
-import Data.List (intersperse, uncons)
+import Data.List (transpose)
 import qualified Data.List as List
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -23,7 +24,6 @@ type Board = Grid Cell
 playerToCell :: Player -> Cell
 playerToCell X = XCell
 playerToCell O = OCell
-
 
 gameBoardSize :: Board -> Int
 gameBoardSize board = V.length board
@@ -47,3 +47,17 @@ printBoard board = putStrLn $ renderBoard board
 -- winning indices for board
 getWinningIndices :: Board -> [[Index]]
 getWinningIndices board = winningIndices (gameBoardSize board)
+
+gameWon :: Board -> Player -> Bool
+gameWon board player =
+  let winningIndices = getWinningIndices board
+      winningCells = V.map (\indices -> V.map (\idx -> index board idx) (V.fromList indices)) (V.fromList winningIndices)
+  in any (V.all (== Just (playerToCell player))) winningCells
+
+gameLost :: Board -> Player -> Bool
+gameLost board player =
+  gameWon board (switchPlayer player)
+
+gameDraw :: Board -> Bool
+gameDraw board =
+  all (/= Empty) (toList board) && not (any (\p -> gameWon board p) [X, O])

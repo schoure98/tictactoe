@@ -53,6 +53,10 @@ data Player
   | O
   deriving (Eq, Show, Read)
 
+switchPlayer :: Player -> Player
+switchPlayer X = O
+switchPlayer O = X
+
 data Dimensions where
   Dimensions
     :: { width :: Int
@@ -64,22 +68,23 @@ data Index where
     :: { column :: Int
        , row :: Int}
     -> Index
-    deriving (Eq, Show, Ord, Read)
+    deriving (Eq, Ord, Read)
 
--- instance Show Index where
---   show i = "<" ++ show i.column ++ ", " ++ show i.row ++ ">"
+instance Show Index where
+  show i = "<" ++ show i.column ++ ", " ++ show i.row ++ ">"
+
 
 left :: Index -> Index
-left i = i {column = i.column - 1}
+left i = i { column = i.column - 1 }
 
 right :: Index -> Index
-right i = i {column = i.column + 1}
+right i = i { column = i.column + 1 }
 
 up :: Index -> Index
-up i = i {row = i.row - 1}
+up i = i { row = i.row - 1 }
 
 down :: Index -> Index
-down i = i {row = i.row + 1}
+down i = i { row = i.row + 1 }
 
 wraparound :: Int -> Index -> Index
 wraparound s i = Index {column = i.column `mod` s, row = i.row `mod` s}
