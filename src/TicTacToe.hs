@@ -20,6 +20,11 @@ data Cell where
 
 type Board = Grid Cell
 
+playerToCell :: Player -> Cell
+playerToCell X = XCell
+playerToCell O = OCell
+
+
 gameBoardSize :: Board -> Int
 gameBoardSize board = V.length board
 
