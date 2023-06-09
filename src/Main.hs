@@ -4,21 +4,16 @@ import Brick
 import Brick.AttrMap (attrMap)
 import Brick.Types (BrickEvent(..), Widget)
 import Brick.Widgets.Border (border)
-import Brick.Widgets.Center (center)
 import Brick.Widgets.Table
 import Control.Monad
-import Control.Monad.IO.Class (liftIO)
-import Data.List (intersperse)
 import Data.Set (Set)
-import qualified Data.Set as Set
-import qualified Data.Vector as V
+import Data.Set qualified as Set
+import Data.Vector qualified as V
 import Data.Void
-import qualified Graphics.Vty as Vty
-import Graphics.Vty.Attributes (defAttr)
 import Graphics.Vty.Attributes.Color
 import Graphics.Vty.Input.Events (Button(..), Event(..), Key(..), Modifier(..))
 import Options.Applicative
-import System.Exit
+
 
 import Grid
 import TicTacToe
@@ -62,12 +57,26 @@ boardWidget board focusIdx =
 
 selectCell :: Cell -> Player -> AppState -> Maybe AppState
 selectCell cell player st
-  | cell == Empty = Just (updateBoard (st.focus) st)
+  | cell == Empty =
+    let updatedBoard = replace (st.focus) (playerToCell player) (st.appBoard)
+        newGameStatus
+          | gameWon updatedBoard player = GameWon
+          | gameOver updatedBoard player = GameOver
+          | gameDraw updatedBoard = GameDraw
+          | otherwise = GameInProgress
+    in Just (st { appBoard = updatedBoard, currentPlayer = switchPlayer player, gameStatus = newGameStatus })
   | otherwise = Nothing
-  where
-    updateBoard idx st' = st' { appBoard = replace idx (playerToCell player) (st'.appBoard), currentPlayer = switchPlayer player }
 
-
+checkGameStatus :: AppState -> EventM Void AppState ()
+checkGameStatus st =
+  case st.gameStatus of
+    GameWon -> do
+      halt
+    GameOver -> do
+      halt
+    GameDraw -> do
+      halt
+    GameInProgress -> pure ()
 
 selectCellM :: EventM Void AppState ()
 selectCellM = do
@@ -75,7 +84,9 @@ selectCellM = do
   let selectedCell = index (st.appBoard) (st.focus)
   case selectedCell of
     Just cell -> case selectCell cell (st.currentPlayer) st of
-      Just updatedState -> put updatedState
+      Just updatedState -> do
+        put updatedState
+        checkGameStatus updatedState
       Nothing -> pure ()
     Nothing -> pure ()
 
@@ -159,7 +170,7 @@ main = do
 
   if gameWon endBoard endPlayer
     then putStrLn $ renderCell (playerToCell endPlayer) ++ " wins!"
-    else if gameLost endBoard endPlayer
+    else if gameOver endBoard endPlayer
            then putStrLn $ renderCell (playerToCell (switchPlayer endPlayer)) ++ " wins!"
            else if gameDraw endBoard
                   then putStrLn "It's a tie game!"

@@ -54,8 +54,8 @@ gameWon board player =
       winningCells = V.map (\indices -> V.map (\idx -> index board idx) (V.fromList indices)) (V.fromList winningIndices)
   in any (V.all (== Just (playerToCell player))) winningCells
 
-gameLost :: Board -> Player -> Bool
-gameLost board player =
+gameOver :: Board -> Player -> Bool
+gameOver board player =
   gameWon board (switchPlayer player)
 
 gameDraw :: Board -> Bool
