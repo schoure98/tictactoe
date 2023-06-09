@@ -5,10 +5,10 @@ import Control.Monad.State
 import Data.Foldable (for_)
 import Data.List (transpose)
 import qualified Data.List as List
+import Data.Vector qualified as Vector
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Traversable (for)
-import qualified Data.Vector as V
 import System.Random (randomRIO)
 
 import Grid
@@ -26,7 +26,7 @@ playerToCell X = XCell
 playerToCell O = OCell
 
 gameBoardSize :: Board -> Int
-gameBoardSize board = V.length board
+gameBoardSize board = Vector.length board
 
 -- Function to create an empty board of given size
 createEmptyBoard :: Size -> Board
@@ -51,8 +51,8 @@ getWinningIndices board = winningIndices (gameBoardSize board)
 gameWon :: Board -> Player -> Bool
 gameWon board player =
   let winningIndices = getWinningIndices board
-      winningCells = V.map (\indices -> V.map (\idx -> index board idx) (V.fromList indices)) (V.fromList winningIndices)
-  in any (V.all (== Just (playerToCell player))) winningCells
+      winningCells = Vector.map (\indices -> Vector.map (\idx -> index board idx) (Vector.fromList indices)) (Vector.fromList winningIndices)
+  in any (Vector.all (== Just (playerToCell player))) winningCells
 
 gameOver :: Board -> Player -> Bool
 gameOver board player =

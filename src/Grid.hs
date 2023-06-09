@@ -31,19 +31,6 @@ zip3 = Grid.zipWith3 (,,)
 foldr :: (a -> b -> b) -> b -> Grid a -> b
 foldr f z = Vector.foldr (flip (Vector.foldr f)) z
 
-pretty ::
-     forall a. Show a
-  => Grid a
-  -> String
--- pretty g = unlines (Vector.toList (Vector.map (unwords . Vector.toList) (Grid.map show g)))
-pretty g = unlines (List.map unwords (Grid.toLists (Grid.map show g)))
-
-prettyPrint ::
-     forall a. Show a
-  => Grid a
-  -> IO ()
-prettyPrint = putStr . pretty
-
 data Size where
   Size :: Int -> Size
 
@@ -57,12 +44,6 @@ switchPlayer :: Player -> Player
 switchPlayer X = O
 switchPlayer O = X
 
-data Dimensions where
-  Dimensions
-    :: { width :: Int
-       , height :: Int}
-    -> Dimensions
-
 data Index where
   Index
     :: { column :: Int
@@ -72,7 +53,6 @@ data Index where
 
 instance Show Index where
   show i = "<" ++ show i.column ++ ", " ++ show i.row ++ ">"
-
 
 left :: Index -> Index
 left i = i { column = i.column - 1 }
